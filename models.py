@@ -198,6 +198,37 @@ class DigitClassificationModel(Model):
         # Remember to set self.learning_rate!
         # You may use any learning rate that works well for your architecture
         "*** YOUR CODE HERE ***"
+        self.learning_rate = .75
+        self.hidden_size = 200
+        self.num_layers = 2
+        self.param_w = []
+        self.param_b = []
+
+        start_size = 784
+        end_size = 10
+        curr_size = start_size
+
+        for i in range(self.num_layers):
+            if i == self.num_layers - 1:
+                if i % 2 == 0:
+                    self.param_w.append(nn.Variable(curr_size, end_size))
+                else:
+                    self.param_w.append(nn.Variable(self.hidden_size, end_size))
+                curr_size = end_size
+                self.param_b.append(nn.Variable(curr_size))
+                break
+            elif i % 2 == 0:
+                self.param_b.append(nn.Variable(self.hidden_size))
+            else:
+                self.param_b.append(nn.Variable(curr_size))
+            if i % 2 == 0:
+                self.param_w.append(nn.Variable(curr_size, self.hidden_size))
+            else:
+                self.param_w.append(nn.Variable(self.hidden_size, curr_size))
+
+        # self.param_w = [nn.Variable(784, self.hidden_size) if i % 2 == 0 else nn.Variable(self.hidden_size, 10) for i in range(self.num_layers)]
+        #
+        # self.param_b = [nn.Variable(self.hidden_size) if i % 2 == 0 else nn.Variable(10) for i in range(self.num_layers)]
 
     def run(self, x, y=None):
         """
@@ -223,10 +254,31 @@ class DigitClassificationModel(Model):
         """
         "*** YOUR CODE HERE ***"
 
+        graph = nn.Graph(self.param_w + self.param_b)
+        inX = nn.Input(graph, x)
+        last = inX
+
+        for i in range(self.num_layers):
+            multNode = nn.MatrixMultiply(graph, last, self.param_w[i])
+            addNode = nn.MatrixVectorAdd(graph, multNode, self.param_b[i])
+            if i != self.num_layers - 1:
+                reluNode = nn.ReLU(graph, addNode)
+                last = reluNode
+            else:
+                last = addNode
         if y is not None:
-            "*** YOUR CODE HERE ***"
+            # At training time, the correct output `y` is known.
+            # Here, you should construct a loss node, and return the nn.Graph
+            # that the node belongs to. The loss node must be the last node
+            # added to the graph.
+            inY = nn.Input(graph, y)
+            loss = nn.SoftmaxLoss(graph, last, inY)
+            return graph
+
         else:
-            "*** YOUR CODE HERE ***"
+            # At test time, the correct output is unknown.
+            # You should instead return your model's prediction as a numpy array
+            return graph.get_output(last)
 
 
 class DeepQModel(Model):
