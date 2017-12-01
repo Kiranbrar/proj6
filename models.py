@@ -113,6 +113,13 @@ class OddRegressionModel(Model):
         # Remember to set self.learning_rate!
         # You may use any learning rate that works well for your architecture
         "*** YOUR CODE HERE ***"
+        self.learning_rate = 0.06
+        self.hidden_size = 200
+        self.num_layers = 2
+
+        self.param_w = [nn.Variable(1, self.hidden_size) if i % 2 == 0 else nn.Variable(self.hidden_size, 1) for i in range(self.num_layers)]
+
+        self.param_b = [nn.Variable(self.hidden_size) if i % 2 == 0 else nn.Variable(1) for i in range(self.num_layers)]
 
     def run(self, x, y=None):
         """
@@ -134,6 +141,26 @@ class OddRegressionModel(Model):
         Note: DO NOT call backprop() or step() inside this method!
         """
         "*** YOUR CODE HERE ***"
+        graph = nn.Graph(self.param_w + self.param_b)
+        inX = [nn.Input(graph, x), nn.Input(graph, -1 * x)]
+        last = inX
+
+        for i in range(self.num_layers):
+            newLast = last
+            for j in range(len(last)):
+                multNode = nn.MatrixMultiply(graph, last[j], self.param_w[i])
+                addNode = nn.MatrixVectorAdd(graph, multNode, self.param_b[i])
+                if i != self.num_layers - 1:
+                    reluNode = nn.ReLU(graph, addNode)
+                    newLast[j] = reluNode
+                else:
+                    newLast[j] = addNode
+            last = newLast
+        # f(x) = g(x) + -1 * g(-x)
+        neg = nn.Input(graph, np.array(-1.0))
+        multNode = nn.MatrixMultiply(graph, inX[1], neg)
+        addNode = nn.MatrixVectorAdd(graph, inX[0], multNode)
+        final = addNode
 
         if y is not None:
             # At training time, the correct output `y` is known.
@@ -141,10 +168,14 @@ class OddRegressionModel(Model):
             # that the node belongs to. The loss node must be the last node
             # added to the graph.
             "*** YOUR CODE HERE ***"
+            inY = nn.Input(graph, y)
+            loss = nn.SquareLoss(graph, final, inY)
+            return graph
         else:
             # At test time, the correct output is unknown.
             # You should instead return your model's prediction as a numpy array
             "*** YOUR CODE HERE ***"
+            return graph.get_output(final)
 
 class DigitClassificationModel(Model):
     """

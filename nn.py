@@ -308,7 +308,7 @@ class MatrixMultiply(FunctionNode):
 
     @staticmethod
     def forward(inputs):
-        return np.dot(inputs[0], inputs[1]) 
+        return np.dot(inputs[0], inputs[1])
 
     @staticmethod
     def backward(inputs, gradient):
@@ -341,7 +341,7 @@ class MatrixVectorAdd(FunctionNode):
         return A + B
 
     @staticmethod
-    def backward(inputs, gradient): 
+    def backward(inputs, gradient):
         return [gradient, np.sum(gradient,0)]
 
 class ReLU(FunctionNode):
