@@ -81,7 +81,7 @@ class Graph(object):
         self.nodeGradients = {}
         for node in variables:
             self.add(node)
- 
+
     def get_nodes(self):
         """
         Returns a list of all nodes that have been added to this Graph, in the
@@ -91,7 +91,7 @@ class Graph(object):
         Returns: a list of nodes
         """
         return self.mynodes
- 
+
     def get_inputs(self, node):
         """
         Retrieves the inputs to a node in the graph. Assume the `node` has
@@ -115,7 +115,7 @@ class Graph(object):
         Returns: a numpy array or a scalar
         """
         "*** YOUR CODE HERE ***"
-        return self.nodes[node]  
+        return self.nodes[node]
 
     def get_gradient(self, node):
         """
@@ -132,7 +132,7 @@ class Graph(object):
         """
         "*** YOUR CODE HERE ***"
         return self.nodeGradients[node]
- 
+
     def add(self, node):
         """
         Adds a node to the graph.
@@ -146,11 +146,11 @@ class Graph(object):
         accumulator for the node, with correct shape.
         """
         "*** YOUR CODE HERE ***"
-        self.nodes[node] = node.forward(self.get_inputs(node))  # setting the ouput 
-        self.nodeGradients[node] = np.zeros_like(self.get_output(node)) 
+        self.nodes[node] = node.forward(self.get_inputs(node))  # setting the ouput
+        self.nodeGradients[node] = np.zeros_like(self.get_output(node))
 
         self.mynodes.append(node)
-    
+
     def backprop(self):
         """
         Runs back-propagation. Assume that the very last node added to the graph
@@ -166,21 +166,21 @@ class Graph(object):
         loss_node = self.get_nodes()[-1]
         assert np.asarray(self.get_output(loss_node)).ndim == 0
 
-        "*** YOUR CODE HERE ***" 
-        self.nodeGradients[loss_node] = 1.0    
+        "*** YOUR CODE HERE ***"
+        self.nodeGradients[loss_node] = 1.0
         for node in reversed(self.mynodes):
             nodeInputs = self.get_inputs(node)
             if node == loss_node:
                 _backwardResults = node.backward(nodeInputs, 1.0)
-            else: 
-                _backwardResults = node.backward(nodeInputs, self.get_gradient(node)) 
-            
-        #Backward returns a LIST of gradients. 
+            else:
+                _backwardResults = node.backward(nodeInputs, self.get_gradient(node))
+
+        #Backward returns a LIST of gradients.
         #So next, we will save thos gradients in our list
             for i in range(0, len(_backwardResults)):
                 parent = node.get_parents()[i]
-                self.nodeGradients[parent] += _backwardResults[i]    
- 
+                self.nodeGradients[parent] = self.nodeGradients[parent] + _backwardResults[i]
+
     def step(self, step_size):
         """
         Updates the values of all variables based on computed gradients.
@@ -383,7 +383,7 @@ class SquareLoss(FunctionNode):
     def forward(inputs):
         diff = np.subtract(inputs[0], inputs[1])
         exp = np.power(diff, 2)
-        result = exp * 0.5 
+        result = exp * 0.5
         return np.mean(result)
 
     @staticmethod

@@ -41,8 +41,13 @@ class RegressionModel(Model):
         # Remember to set self.learning_rate!
         # You may use any learning rate that works well for your architecture
         "*** YOUR CODE HERE ***"
-        self.graph = nn.Graph([])
-        self.learning_rate = 0.9
+        self.learning_rate = 0.06
+        self.hidden_size = 200
+        self.num_layers = 2
+
+        self.param_w = [nn.Variable(1, self.hidden_size) if i % 2 == 0 else nn.Variable(self.hidden_size, 1) for i in range(self.num_layers)]
+
+        self.param_b = [nn.Variable(self.hidden_size) if i % 2 == 0 else nn.Variable(1) for i in range(self.num_layers)]
 
     def run(self, x, y = None):
         """
@@ -65,25 +70,31 @@ class RegressionModel(Model):
         """
         "*** YOUR CODE HERE ***"
 
+        graph = nn.Graph(self.param_w + self.param_b)
+        inX = nn.Input(graph, x)
+        last = inX
+
+        for i in range(self.num_layers):
+            multNode = nn.MatrixMultiply(graph, last, self.param_w[i])
+            addNode = nn.MatrixVectorAdd(graph, multNode, self.param_b[i])
+            if i != self.num_layers - 1:
+                reluNode = nn.ReLU(graph, addNode)
+                last = reluNode
+            else:
+                last = addNode
         if y is not None:
             # At training time, the correct output `y` is known.
             # Here, you should construct a loss node, and return the nn.Graph
             # that the node belongs to. The loss node must be the last node
             # added to the graph.
-            varX = nn.Variable(np.prod(x.shape))
-            varY = nn.Variable(np.prod(y.shape))
-
-            self.graph.add(varX)
-            self.graph.add(varY)
-
-            loss = nn.SquareLoss(self.graph, varX, varY)
-            return self.graph
+            inY = nn.Input(graph, y)
+            loss = nn.SquareLoss(graph, last, inY)
+            return graph
 
         else:
             # At test time, the correct output is unknown.
             # You should instead return your model's prediction as a numpy array
-            node = nn.Input(self.graph, x)
-            return self.graph.get_output(node)
+            return graph.get_output(last)
 
 
 class OddRegressionModel(Model):
