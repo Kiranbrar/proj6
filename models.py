@@ -27,6 +27,7 @@ class Model(object):
             graph.backprop()
             graph.step(self.learning_rate)
 
+
 class RegressionModel(Model):
     """
     A neural network model for approximating a function that maps from real
@@ -40,8 +41,10 @@ class RegressionModel(Model):
         # Remember to set self.learning_rate!
         # You may use any learning rate that works well for your architecture
         "*** YOUR CODE HERE ***"
+        self.graph = nn.Graph([])
+        self.learning_rate = 0.9
 
-    def run(self, x, y=None):
+    def run(self, x, y = None):
         """
         Runs the model for a batch of examples.
 
@@ -67,11 +70,21 @@ class RegressionModel(Model):
             # Here, you should construct a loss node, and return the nn.Graph
             # that the node belongs to. The loss node must be the last node
             # added to the graph.
-            "*** YOUR CODE HERE ***"
+            varX = nn.Variable(np.prod(x.shape))
+            varY = nn.Variable(np.prod(y.shape))
+
+            self.graph.add(varX)
+            self.graph.add(varY)
+
+            loss = nn.SquareLoss(self.graph, varX, varY)
+            return self.graph
+
         else:
             # At test time, the correct output is unknown.
             # You should instead return your model's prediction as a numpy array
-            "*** YOUR CODE HERE ***"
+            node = nn.Input(self.graph, x)
+            return self.graph.get_output(node)
+
 
 class OddRegressionModel(Model):
     """
