@@ -299,6 +299,33 @@ class DeepQModel(Model):
         # Remember to set self.learning_rate!
         # You may use any learning rate that works well for your architecture
         "*** YOUR CODE HERE ***"
+        self.learning_rate = .01
+        self.hidden_size = 200
+        self.num_layers = 2
+        self.param_w = []
+        self.param_b = []
+
+        start_size = self.state_size
+        end_size = self.num_actions
+        curr_size = start_size
+
+        for i in range(self.num_layers):
+            if i == self.num_layers - 1:
+                if i % 2 == 0:
+                    self.param_w.append(nn.Variable(curr_size, end_size))
+                else:
+                    self.param_w.append(nn.Variable(self.hidden_size, end_size))
+                curr_size = end_size
+                self.param_b.append(nn.Variable(curr_size))
+                break
+            elif i % 2 == 0:
+                self.param_b.append(nn.Variable(self.hidden_size))
+            else:
+                self.param_b.append(nn.Variable(curr_size))
+            if i % 2 == 0:
+                self.param_w.append(nn.Variable(curr_size, self.hidden_size))
+            else:
+                self.param_w.append(nn.Variable(self.hidden_size, curr_size))
 
     def run(self, states, Q_target=None):
         """
@@ -325,12 +352,25 @@ class DeepQModel(Model):
             (if Q_target is None) A (batch_size x 2) numpy array of Q-value
                 scores, for the two actions
         """
-        "*** YOUR CODE HERE ***"
+        graph = nn.Graph(self.param_w + self.param_b)
+        inX = nn.Input(graph, states)
+        last = inX
+
+        for i in range(self.num_layers):
+            multNode = nn.MatrixMultiply(graph, last, self.param_w[i])
+            addNode = nn.MatrixVectorAdd(graph, multNode, self.param_b[i])
+            if i != self.num_layers - 1:
+                reluNode = nn.ReLU(graph, addNode)
+                last = reluNode
+            else:
+                last = addNode
 
         if Q_target is not None:
-            "*** YOUR CODE HERE ***"
+            inY = nn.Input(graph, Q_target)
+            loss = nn.SquareLoss(graph, last, inY)
+            return graph
         else:
-            "*** YOUR CODE HERE ***"
+            return graph.get_output(last)
 
     def get_action(self, state, eps):
         """
@@ -371,6 +411,28 @@ class LanguageIDModel(Model):
         # Remember to set self.learning_rate!
         # You may use any learning rate that works well for your architecture
         "*** YOUR CODE HERE ***"
+        self.learning_rate = .1
+        self.hidden_size = 200
+        self.num_layers = 2
+        self.param_w = []
+        self.param_b = []
+
+        start_size = self.num_chars
+        end_size = len(self.languages)
+        curr_size = start_size
+
+        for i in range(self.num_layers):
+            if i == self.num_layers - 1:
+                self.param_w.append(nn.Variable(self.hidden_size, end_size))
+                self.param_b.append(nn.Variable(end_size))
+            else:
+                self.param_w.append(nn.Variable(self.hidden_size, self.hidden_size))
+                self.param_b.append(nn.Variable(self.hidden_size))
+
+        self.w = nn.Variable(start_size, self.hidden_size)
+        self.wh = nn.Variable(self.hidden_size, self.hidden_size)
+        self.h = nn.Variable(self.hidden_size)
+
 
     def run(self, xs, y=None):
         """
@@ -411,9 +473,30 @@ class LanguageIDModel(Model):
         """
         batch_size = xs[0].shape[0]
 
-        "*** YOUR CODE HERE ***"
+        graph = nn.Graph(self.param_w + self.param_b + [self.w, self.wh, self.h])
+
+        last = nn.MatrixVectorAdd(graph, nn.Input(graph, np.zeros((batch_size, self.hidden_size))), self.h)
+
+        for x in xs:
+            inX = nn.Input(graph, x)
+            multNode = nn.MatrixMultiply(graph, last, self.wh)
+            multNode2 = nn.MatrixMultiply(graph, inX, self.w)
+            addNode = nn.Add(graph, multNode, multNode2)
+            reluNode = nn.ReLU(graph, addNode)
+            last = reluNode
+
+        for i in range(self.num_layers):
+            multNode = nn.MatrixMultiply(graph, last, self.param_w[i])
+            addNode = nn.MatrixVectorAdd(graph, multNode, self.param_b[i])
+            if i != self.num_layers - 1:
+                reluNode = nn.ReLU(graph, addNode)
+                last = reluNode
+            else:
+                last = addNode
 
         if y is not None:
-            "*** YOUR CODE HERE ***"
+            inY = nn.Input(graph, y)
+            loss = nn.SquareLoss(graph, last, inY)
+            return graph
         else:
-            "*** YOUR CODE HERE ***"
+            return graph.get_output(last)
